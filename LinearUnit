@@ -1,0 +1,81 @@
+# https://www.zybuluo.com/hanbingtao/note/448086
+from functools import reduce
+
+
+class LinearUnit(object):
+    def __init__(self, input_num, activator):
+        # 激活函数
+        self.activator = activator
+        # 初始权值的设定
+        self.weights = [0.0 for x in range(input_num)]
+        # 初始偏置的设定
+        self.bias = 0.0
+
+    def __str__(self):
+        # 输出情况 便于找BUG  这里注意 self.weights前要加list，否则输出内存地址
+        return 'weights\t:%s\nbias\t:%f\n' % (list(self.weights), self.bias)
+
+    def predict(self, input_vec):
+        # 对输入向量进行结果预测，reduce的第三个参数是初始值  最后要加个偏置来修正
+        return self.activator(reduce(lambda a, b: a + b,
+                                     list(
+                                         map(
+                                             lambda a, b: a * b, input_vec, self.weights
+                                         )
+                                     ), 0.0) + self.bias
+                              )
+    # 进行训练
+    def train(self, input_vecs, labels, iteration, rate):
+        for i in range(iteration):
+            self._one_iteration(input_vecs, labels, rate)
+
+    # 进行一轮训练
+    def _one_iteration(self, input_vecs, labels, rate):
+        for input_vec, label in zip(input_vecs, labels):
+            # print('input_vec:%s\nlabel"%f'%(input_vec,label))
+            output = self.predict(input_vec)
+            self.update_weights(input_vec, output, label, rate)
+            # print(self)
+
+    def update_weights(self, input_vec, output, label, rate):
+        delta = label - output
+        # 此处一个坑点是map前要加list，否则就会产生一个map类型的东西
+        self.weights = list(map(lambda x, w: w + rate * delta * x, input_vec, self.weights))
+        self.bias = self.bias + rate * delta
+
+
+def f(x):
+    return x
+
+
+def get_training_dataset():
+    '''
+    捏造5个人的收入数据
+    '''
+    # 构建训练数据
+    # 输入向量列表，每一项是工作年限
+    input_vecs = [[5], [3], [8], [1.4], [10.1]]
+    # 期望的输出列表，月薪，注意要与输入一一对应
+    labels = [5500, 2300, 7600, 1800, 11400]
+    return input_vecs, labels
+def train_linear_unit():
+    '''
+    使用数据训练线性单元
+    '''
+    # 创建感知器，输入参数的特征数为1（工作年限）
+    lu = LinearUnit(1,f)
+    # 训练，迭代10轮, 学习速率为0.01
+    input_vecs, labels = get_training_dataset()
+    lu.train(input_vecs, labels, 10, 0.01)
+    #返回训练好的线性单元
+    return lu
+if __name__ == '__main__':
+    '''训练线性单元'''
+    linear_unit = train_linear_unit()
+    # 打印训练获得的权重
+    print (linear_unit)
+    # 测试
+    print ('Work 3.4 years, monthly salary = %.2f' % linear_unit.predict([3.4]))
+    print ('Work 15 years, monthly salary = %.2f' % linear_unit.predict([15]))
+    print ('Work 1.5 years, monthly salary = %.2f' % linear_unit.predict([1.5]))
+    print ('Work 6.3 years, monthly salary = %.2f' % linear_unit.predict([6.3]))
