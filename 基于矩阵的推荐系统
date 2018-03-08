@@ -1,0 +1,56 @@
+import numpy as np
+
+
+def load_data(path):
+    f = open(path)
+    data = []
+    for line in f.readlines():
+        arr = []
+        x = line.strip().split('\t')
+        for y in x:
+            if y != '-':
+                arr.append(int(y))
+            else:
+                arr.append(0)
+        data.append(arr)
+    data = np.mat(data)
+    return data
+
+
+def GradAscent(data, K):
+    m, n = np.shape(data)
+    p = np.mat(np.random.rand(m, K))
+    q = np.mat(np.random.rand(K, n))
+    alpha = 0.002
+    beta = 0.02
+    max_cycle = 10000
+
+    for step in range(max_cycle):
+        for i in range(m):
+            for j in range(n):
+                if data[i,j] != 0:
+                    error = data[i,j]
+                    # 得到偏差项
+                    for k in range(K):
+                        error = error - p[i,k] * q[k,j]
+                    for k in range(K):
+                        p[i,k] = p[i,k] + alpha * (2 * error * q[k,j] - beta * p[i,k])
+                        q[k,j] = q[k,j] + alpha * (2 * error * p[i,k] - beta * q[k,j])
+        loss = 0.0
+        for i in range(m):
+            for j in range(n):
+                if data[i,j] > 0:
+                    error = 0.0
+                    for k in range(K):
+                        error = error + p[i,k] * q[k,j]
+                    loss = (data[i,j] - error) * (data[i,j] - error)
+                    for k in range(K):
+                        loss = loss + beta * (p[i, k] * p[i, k] + q[k, j] * q[k, j]) / 2
+        if loss < 0.001:
+            break
+        if step % 1000 == 0:
+            print(step,loss)
+    print(data)
+    print(np.dot(p,q))
+
+GradAscent(load_data('test.txt'),5)
